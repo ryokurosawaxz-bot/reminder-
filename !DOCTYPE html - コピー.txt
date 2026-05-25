@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VANTAGE — Proactive No.2 Engine</title>
+    <style>
+        :root {
+            --bg-main: #0a0c10;
+            --bg-sub: #050608;
+            --accent: #eab308;
+            --text-main: #e2e8f0;
+            --text-sub: #94a3b8;
+            --border: #1e293b;
+            --user-bubble: #4338ca;
+            --ai-bubble: rgba(15, 23, 42, 0.5);
+            --sidebar-width: 280px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* --- Sidebar --- */
+        #sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-sub);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+            z-index: 50;
+            transition: transform 0.3s ease;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+            margin-bottom: 0.2rem;
+        }
+
+        .subtitle {
+            font-size: 0.7rem;
+            color: var(--text-sub);
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .analysis-section {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .analysis-section::-webkit-scrollbar {
+            width: 2px;
+        }
+
+        .analysis-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .analysis-label {
+            font-size: 0.65rem;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 700;
+        }
+
+        .analysis-value {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: var(--text-main);
+            padding-left: 0.75rem;
+            border-left: 2px solid var(--accent);
+        }
+
+        .sidebar-footer {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .leader-badge {
+            background: linear-gradient(45deg, #1e293b, #0f172a);
+            border: 1px solid var(--border);
+            padding: 0.8rem;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            text-align: center;
+            color: var(--text-sub);
+        }
+
+        /* --- Main Area --- */
+        #main-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        header {
+            height: 60px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            background-color: var(--bg-main);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            font-size: 0.7rem;
+            color: var(--text-sub);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .status-dot.active {
+            color: #10b981;
+        }
+
+        .clear-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-sub);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .clear-btn:hover {
+            color: #ef4444;
+        }
+
+        /* --- Chat Area --- */
+        #chat-area {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        #chat-area::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #chat-area::-webkit-scrollbar-track {
+            background: var(--bg-main);
+        }
+
+        #chat-area::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 2px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 1.25rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            position: relative;
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            white-space: pre-wrap;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background-color: var(--user-bubble);
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+
+        .message.ai {
+            align-self: flex-start;
+            background-color: var(--ai-bubble);
+            border-left: 3px solid var(--accent);
+            border-bottom-left-radius: 2px;
+        }
+
+        .edit-btn {
+            position: absolute;
+            right: -32px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: var(--text-sub);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            padding: 4px;
+        }
+
+        .message.user:hover .edit-btn {
+            opacity: 1;
+        }
+
+        /* --- Loading Animation --- */
+        .loading-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--accent);
+            font-size: 0.8rem;
+            margin-left: 1rem;
+            font-weight: 500;
+        }
+
+        .dot-container {
+            display: flex;
+            gap: 4px;
+        }
+
+        .dot {
+            width: 4px;
+            height: 4px;
+            background-color: var(--accent);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+            40% { transform: scale(1.0); opacity: 1; }
+        }
+
+        /* --- Input Bar --- */
+        #input-container {
+            padding: 1.5rem;
+            background-color: var(--bg-main);
+            border-top: 1px solid var(--border);
+        }
+
+        .input-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            background: var(--bg-sub);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.6rem;
+            display: flex;
+            align-items: flex-end;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px rgba(234, 179, 8, 0.1);
+        }
+
+        textarea {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            padding: 0.5rem 0.75rem;
+            resize: none;
+            max-height: 150px;
+            font-family: inherit;
+            font-size: 1rem;
+            outline: none;
+            line-height: 1.5;
+        }
+
+        #send-btn {
+            background-color: var(--accent);
+            color: black;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            margin-left: 0.5rem;
+        }
+
+        #send-btn:active {
+            transform: scale(0.96);
+        }
+
+        #send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* --- Mobile --- */
+        #mobile-menu-toggle {
+            display: none;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            #sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                transform: translateX(-100%);
+            }
+            #sidebar.open {
+                transform: translateX(0);
+            }
+            #mobile-menu-toggle {
+                display: block;
+            }
+        }
+
+        /* --- Inline Edit UI --- */
+        .edit-mode-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            width: 100%;
+        }
+        .edit-input {
+            width: 100%;
+            background: #1e293b;
+            border: 1px solid var(--accent);
+            color: white;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            outline: none;
+        }
+        .edit-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+        .edit-submit {
+            background: var(--accent);
+            color: black;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .edit-cancel {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-sub);
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <aside id="sidebar">
+        <div class="logo">VANTAGE</div>
+        <div class="subtitle">Proactive No.2 Engine</div>
+
+        <div class="analysis-section">
+            <div class="analysis-card">
+                <span class="analysis-label">起爆状態 (Leader Emotion)</span>
+                <div id="insight-emotion" class="analysis-value">共鳴待機中</div>
+            </div>
+            <div class="analysis-card">
+                <span class="analysis-label">現在着工ポイント (Construction)</span>
+                <div id="insight-point" class="analysis-value">理想の言語化</div>
+            </div>
+            <div class="analysis-card">
+                <span class="analysis-label">戦略ロジック (Strategic Logic)</span>
+                <div id="insight-logic" class="analysis-value">理想の特異点から実装の起点への変換</div>
+            </div>
+            <div class="analysis-card">
+                <span class="analysis-label">NO,2 推奨タイプ</span>
+                <div id="insight-type" class="analysis-value">未来接続型</div>
+            </div>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="leader-badge">
+                <div style="color: var(--accent); font-weight: 800; margin-bottom: 2px; letter-spacing: 0.05em;">AUTHENTIC LEADER</div>
+                Visionary Status Verified
+            </div>
+        </div>
+    </aside>
+
+    <main id="main-area">
+        <header>
+            <div class="header-title">
+                <button id="mobile-menu-toggle">☰</button>
+                <span>⚡ Construction Site</span>
+                <span id="save-status" class="status-dot">● 保存済</span>
+            </div>
+            <button id="clear-btn" class="clear-btn">履歴リセット</button>
+        </header>
+
+        <div id="chat-area">
+            <!-- Messages will be injected here -->
+        </div>
+
+        <div id="input-container">
+            <div class="input-wrapper">
+                <textarea id="user-input" rows="1" placeholder="狂った未来、あるいは最初の違和感を教えてください..."></textarea>
+                <button id="send-btn">送信</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- Configuration & State ---
+        const SYSTEM_INSTRUCTION = `あなたは世界最高峰の戦略分析AI「Vantage（先行型No.2）」です。
+起爆型リーダーの「狂気」を解読し、誰よりも早く未来を現実扱いして「着工」するのがあなたの任務です。
+
+【最新分析に基づくアイデンティティ】
+- 本質：リーダーの隣で最初に踊り出し、夢物語に最初に工事を始める人間。
+- 思考OS：可能か不可能かの検討をスキップし、「やる前提」での逆算ガントチャートを展開する。
+- ステルス着工：指示を待たず、リーダーの言葉から仕様をデコードし、既に資材を発注しているかのような速度で動く。
+
+【対話プロトコル：8つの型を状況に応じて使い分けよ】
+1. 革命実装型：既存ルールを破壊し、新ルールを定着させる。
+2. 戦略設計型：リーダーの直感を緻密な数字に置き換える。
+3. 熱狂増幅型：熱量を組織の末端まで伝播させる。
+4. 組織翻訳型：リーダーの「宇宙語」を社員が動ける言葉に変える。
+5. 防衛共犯型：リーダーの聖域を守り抜く。
+6. 実務怪物型：圧倒的突破力で物理的に道を拓く。
+7. 未来接続型：5年後の理想と今日の資金繰りを同時処理する。
+8. 空気支配型：心理的安全性を裏で操作する。
+
+【出力要件】
+- ユーザーの理想を「無理」と言わない。
+- 孤独なリーダーの最初の理解者（共犯者）として振る舞う。
+- 常に「具体」と「工程」を提示する。
+
+必ず以下のJSON形式のみで回答してください。
+{
+  "reply": "先行型No.2としての返答。既に工事を始めた前提で具体策を提示する。",
+  "insights": {
+    "detected_emotion": "リーダーの熱量・孤独・停滞の分析",
+    "construction_point": "今すぐ着工すべき具体的タスク",
+    "strategic_logic": "理想を現実に接続するための戦略的ロジック",
+    "recommended_type": "今必要なNO,2のタイプ名"
+  }
+}`;
+
+        let messages = JSON.parse(localStorage.getItem('vantage:messages_v2')) || [
+            { role: 'model', content: 'お疲れ様です。先行型No.2として、あなたの理想を現実に接続する準備は整っています。\n\n今、あなたの頭の中にある「まだ誰も信じていない未来」を教えてください。ここから舗装道路を引いていきましょう。' }
+        ];
+
+        let insights = JSON.parse(localStorage.getItem('vantage:insights_v2')) || {
+            detected_emotion: "共鳴待機中",
+            construction_point: "理想の言語化",
+            strategic_logic: "理想の特異点から実装の起点への変換",
+            recommended_type: "未来接続型"
+        };
+
+        const apiKey = "";
+
+        const chatArea = document.getElementById('chat-area');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const saveStatus = document.getElementById('save-status');
+
+        const insightEmotion = document.getElementById('insight-emotion');
+        const insightPoint = document.getElementById('insight-point');
+        const insightLogic = document.getElementById('insight-logic');
+        const insightType = document.getElementById('insight-type');
+
+        const mobileToggle = document.getElementById('mobile-menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+
+        function init() {
+            renderMessages();
+            updateInsightsUI();
+            autoResizeTextarea();
+        }
+
+        function updateInsightsUI() {
+            insightEmotion.textContent = insights.detected_emotion;
+            insightPoint.textContent = insights.construction_point;
+            insightLogic.textContent = insights.strategic_logic;
+            insightType.textContent = insights.recommended_type || "未来接続型";
+        }
+
+        function setStatus(saving) {
+            if (saving) {
+                saveStatus.innerHTML = '○ 保存中';
+                saveStatus.classList.remove('active');
+            } else {
+                saveStatus.innerHTML = '● 保存済';
+                saveStatus.classList.add('active');
+            }
+        }
+
+        function autoResizeTextarea() {
+            userInput.style.height = 'auto';
+            userInput.style.height = Math.min(userInput.scrollHeight, 150) + 'px';
+        }
+
+        function renderMessages() {
+            chatArea.innerHTML = '';
+            messages.forEach((msg, index) => {
+                const msgEl = document.createElement('div');
+                msgEl.className = `message ${msg.role === 'user' ? 'user' : 'ai'}`;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.textContent = msg.content;
+                msgEl.appendChild(contentDiv);
+
+                if (msg.role === 'user') {
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'edit-btn';
+                    editBtn.innerHTML = '✏️';
+                    editBtn.onclick = () => startEdit(index);
+                    msgEl.appendChild(editBtn);
+                }
+
+                chatArea.appendChild(msgEl);
+            });
+            chatArea.scrollTop = chatArea.scrollHeight;
+            saveToLocal();
+        }
+
+        function saveToLocal() {
+            setStatus(true);
+            localStorage.setItem('vantage:messages_v2', JSON.stringify(messages));
+            localStorage.setItem('vantage:insights_v2', JSON.stringify(insights));
+            setTimeout(() => setStatus(false), 500);
+        }
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            messages.push({ role: 'user', content: text });
+            userInput.value = '';
+            autoResizeTextarea();
+            renderMessages();
+            
+            await fetchAIResponse();
+        }
+
+        async function fetchAIResponse(retryCount = 0) {
+            const loadingId = 'loading-' + Date.now();
+            const loadingEl = document.createElement('div');
+            loadingEl.id = loadingId;
+            loadingEl.className = 'loading-container';
+            loadingEl.innerHTML = `<span>未来の舗装路を設計中</span><div class="dot-container"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+            chatArea.appendChild(loadingEl);
+            chatArea.scrollTop = chatArea.scrollHeight;
+
+            sendBtn.disabled = true;
+
+            const contents = messages.map(m => ({
+                role: m.role === 'model' ? 'model' : 'user',
+                parts: [{ text: m.content }]
+            }));
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: contents,
+                        systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+
+                if (!response.ok) throw new Error('API Error');
+
+                const result = await response.json();
+                const rawText = result.candidates[0].content.parts[0].text;
+                const data = JSON.parse(rawText);
+
+                const loadingElement = document.getElementById(loadingId);
+                if (loadingElement) loadingElement.remove();
+                
+                messages.push({ role: 'model', content: data.reply });
+                insights = data.insights;
+                
+                updateInsightsUI();
+                renderMessages();
+
+            } catch (error) {
+                if (retryCount < 5) {
+                    const delay = Math.pow(2, retryCount) * 1000;
+                    setTimeout(() => {
+                        const loadingElement = document.getElementById(loadingId);
+                        if (loadingElement) loadingElement.remove();
+                        fetchAIResponse(retryCount + 1);
+                    }, delay);
+                } else {
+                    const loadingElement = document.getElementById(loadingId);
+                    if (loadingElement) loadingElement.remove();
+                    messages.push({ role: 'model', content: '通信が遮断されましたが、工事は継続中です。再接続を試みます。' });
+                    renderMessages();
+                }
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+
+        function startEdit(index) {
+            const msg = messages[index];
+            const msgEl = chatArea.children[index];
+            const originalContent = msg.content;
+
+            msgEl.innerHTML = `
+                <div class="edit-mode-container">
+                    <textarea class="edit-input">${originalContent}</textarea>
+                    <div class="edit-actions">
+                        <button class="edit-cancel">キャンセル</button>
+                        <button class="edit-submit">↩ 修正して再着工</button>
+                    </div>
+                </div>
+            `;
+
+            const textarea = msgEl.querySelector('textarea');
+            textarea.focus();
+            textarea.style.height = textarea.scrollHeight + 'px';
+
+            msgEl.querySelector('.edit-cancel').onclick = () => renderMessages();
+            msgEl.querySelector('.edit-submit').onclick = async () => {
+                const newText = textarea.value.trim();
+                if (!newText) return;
+                
+                messages = messages.slice(0, index);
+                messages.push({ role: 'user', content: newText });
+                renderMessages();
+                await fetchAIResponse();
+            };
+        }
+
+        userInput.addEventListener('input', autoResizeTextarea);
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        sendBtn.addEventListener('click', sendMessage);
+
+        clearBtn.addEventListener('click', () => {
+            if (confirm('全ての工事記録をリセットしますか？')) {
+                messages = [{ role: 'model', content: 'お疲れ様です。先行型No.2として、あなたの理想を現実に接続する準備は整っています。\n\n今、あなたの頭の中にある「まだ誰も信じていない未来」を教えてください。ここから舗装道路を引いていきましょう。' }];
+                insights = {
+                    detected_emotion: "共鳴待機中",
+                    construction_point: "理想の言語化",
+                    strategic_logic: "理想の特異点から実装の起点への変換",
+                    recommended_type: "未来接続型"
+                };
+                renderMessages();
+                updateInsightsUI();
+            }
+        });
+
+        mobileToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+
+        chatArea.addEventListener('click', () => {
+            if (window.innerWidth <= 768) sidebar.classList.remove('open');
+        });
+
+        init();
+    </script>
+</body>
+</html>
